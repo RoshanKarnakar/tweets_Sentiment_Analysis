@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Sentiment Analysis</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1da1f2 0%, #0d47a1 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 520px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .twitter-icon {
+            font-size: 32px;
+        }
+        h1 {
+            font-size: 22px;
+            color: #1a1a2e;
+        }
+        p.subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 28px;
+            margin-top: 4px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        textarea {
+            width: 100%;
+            padding: 14px;
+            border: 1.5px solid #ddd;
+            border-radius: 10px;
+            font-size: 15px;
+            resize: vertical;
+            min-height: 110px;
+            color: #333;
+            outline: none;
+            transition: border 0.2s;
+            font-family: inherit;
+        }
+        textarea:focus { border-color: #1da1f2; }
+        .char-count {
+            font-size: 12px;
+            color: #aaa;
+            text-align: right;
+            margin-top: 4px;
+            margin-bottom: 20px;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #1da1f2;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #0d8bd9; }
+        button:disabled { background: #a8d8f5; cursor: not-allowed; }
+        .result {
+            margin-top: 24px;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+        }
+        .result-emoji { font-size: 40px; margin-bottom: 8px; }
+        .result-label { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+        .result-sub { font-size: 13px; opacity: 0.8; }
+        .result.positive { background: #e6f9f0; border: 2px solid #34d399; color: #065f46; }
+        .result.negative { background: #fef2f2; border: 2px solid #f87171; color: #991b1b; }
+        .error {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: #fff8e1;
+            color: #856404;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="twitter-icon">🐦</span>
+            <h1>Twitter Sentiment Analysis</h1>
+        </div>
+        <p class="subtitle">Type a tweet to find out if it's positive or negative</p>
+ 
+        <label for="tweet">Tweet Text</label>
+        <textarea id="tweet" placeholder="e.g. I love this beautiful day! ☀️" maxlength="280" oninput="updateCount()"></textarea>
+        <div class="char-count"><span id="count">0</span> / 280</div>
+ 
+        <button id="predictBtn" onclick="predict()">Analyse Tweet</button>
+ 
+        <div class="result" id="result">
+            <div class="result-emoji" id="resultEmoji"></div>
+            <div class="result-label" id="resultLabel"></div>
+            <div class="result-sub" id="resultSub"></div>
+        </div>
+        <div class="error" id="error"></div>
+    </div>
+ 
+    <script>
+        function updateCount() {
+            const len = document.getElementById('tweet').value.length;
+            document.getElementById('count').textContent = len;
+        }
+ 
+        async function predict() {
+            const tweet = document.getElementById('tweet').value.trim();
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+            const btn = document.getElementById('predictBtn');
+ 
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+ 
+            if (!tweet) {
+                errorDiv.textContent = 'Please enter a tweet first.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+ 
+            btn.disabled = true;
+            btn.textContent = 'Analysing...';
+ 
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tweet })
+                });
+ 
+                const data = await response.json();
+                const pred = data.prediction;
+ 
+                document.getElementById('resultEmoji').textContent = pred === 1 ? '😊' : '😞';
+                document.getElementById('resultLabel').textContent = pred === 1 ? 'Positive Tweet' : 'Negative Tweet';
+                document.getElementById('resultSub').textContent = pred === 1
+                    ? 'This tweet has a positive sentiment.'
+                    : 'This tweet has a negative sentiment.';
+ 
+                resultDiv.className = `result ${pred === 1 ? 'positive' : 'negative'}`;
+                resultDiv.style.display = 'block';
+            } catch (err) {
+                errorDiv.textContent = 'Something went wrong. Make sure the server is running.';
+                errorDiv.style.display = 'block';
+            }
+ 
+            btn.disabled = false;
+            btn.textContent = 'Analyse Tweet';
+        }
+    </script>
+</body>
+</html>
